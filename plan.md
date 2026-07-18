@@ -14,7 +14,7 @@ filter, and pay via Stripe.
 | Layer | Choice |
 |---|---|
 | Frontend | Next.js (App Router), TypeScript, Tailwind CSS, TanStack Query, Recharts |
-| Backend | Node.js, Express.js, TypeScript, MongoDB (Mongoose) |
+| Backend | Node.js, Express.js, TypeScript, MongoDB (native `mongodb` driver) |
 | Auth | BetterAuth (email/password + Google OAuth), JWT sessions, role-based middleware |
 | Payments | Stripe (Checkout Sessions + webhooks) |
 | AI | Google Gemini API |
