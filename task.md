@@ -57,20 +57,23 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 3 — Shops & Seller Registration Fee
+## Phase 3 — Shops & Seller Registration Fee (DONE)
 
 **Server**
-- [ ] `server/src/controllers/shopController.ts` — create shop (pending), get shop by id, list shops, admin approve/suspend
-- [ ] `server/src/routes/shopRoutes.ts` — `POST /api/shops`, `GET /api/shops`, `GET /api/shops/:id`, `PATCH /api/shops/:id/approve` (admin), `PATCH /api/shops/:id/suspend` (admin)
-- [ ] `server/src/controllers/paymentController.ts` — `POST /api/payments/seller-fee-checkout` → creates Stripe Checkout Session (`metadata.type=seller_fee`, `metadata.shopId`)
-- [ ] `server/src/routes/webhookRoutes.ts` — `POST /api/payments/webhook` (raw body parser), handle `checkout.session.completed`: if `type=seller_fee` → set `shop.feePaid=true`, `status=active`, bump user role to `seller`
+- [x] `server/src/controllers/shopController.ts` — create shop (idempotent, pending), get mine/by id, list active shops (public, `?search=`), admin list/approve/suspend
+- [x] `server/src/routes/shopRoutes.ts` — `POST /api/shops`, `GET /api/shops`, `GET /api/shops/mine`, `GET /api/shops/:id`, `GET /api/shops/admin` (admin), `PATCH /api/shops/:id/approve`\|`suspend` (admin)
+- [x] `server/src/controllers/paymentController.ts` — `POST /api/payments/seller-fee-checkout` → Stripe Checkout Session, $49 one-time, `metadata.type=seller_fee`
+- [x] `server/src/routes/webhookRoutes.ts` — `POST /api/payments/webhook` (`express.raw`, mounted before `express.json()`), verifies signature, on `checkout.session.completed` + `type=seller_fee` sets `shop.feePaid=true`/`status=active` and bumps user role to `seller`
+- [x] `server/src/config/stripe.ts` — Stripe client, `SELLER_FEE_AMOUNT_CENTS`
+- [x] `server/src/utils/params.ts` — `getObjectIdParam` helper (Express 5 types `req.params[x]` as `string | string[]`, needed a typed guard)
 
 **Client**
-- [ ] `/become-seller` page — shop form (name, description, address, logo URL) → on submit, create shop + redirect to Stripe Checkout
-- [ ] `/become-seller/success` and `/become-seller/cancel` pages
-- [ ] Shop status banner in seller dashboard (pending fee / active / suspended)
+- [x] `/become-seller` — shop form → create shop → redirect to Stripe Checkout; if a shop already exists, shows status + "pay now" (handles pending/active/suspended)
+- [x] `/become-seller/success` — polls `/shops/mine` briefly for the async webhook to land, then shows active state; `/become-seller/cancel`
+- [x] `client/src/lib/api.ts` — `apiFetch` helper (credentials included, throws `ApiError`)
+- [x] Minimal `/dashboard/seller` with `RequireRole("seller")` + shop status banner (full stats/charts dashboard is Phase 10)
 
-**Verify:** register as seller, pay test-card fee via Stripe test mode, confirm webhook flips shop to active and role to seller.
+**Verified live** with Stripe CLI (`stripe listen --api-key ... --forward-to localhost:5000/api/payments/webhook`) and a real test-card payment (4242...) through hosted Checkout: shop created → Checkout session → payment → webhook fired → shop flipped to `active` → user role flipped to `seller` → success page and seller dashboard both reflect it. Test account cleaned up after.
 
 ---
 

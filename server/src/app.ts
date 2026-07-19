@@ -4,6 +4,9 @@ import cookieParser from "cookie-parser";
 import { env } from "./config/env";
 import { getAuth } from "./auth";
 import { meRoutes } from "./routes/meRoutes";
+import { shopRoutes } from "./routes/shopRoutes";
+import { paymentRoutes } from "./routes/paymentRoutes";
+import { webhookRoutes } from "./routes/webhookRoutes";
 
 export async function createApp(): Promise<Express> {
   const app = express();
@@ -20,6 +23,9 @@ export async function createApp(): Promise<Express> {
   // Mounted before express.json() — better-auth reads the raw request body itself.
   app.all("/api/auth/*splat", toNodeHandler(auth));
 
+  // Also before express.json() — Stripe webhook needs the raw body to verify the signature.
+  app.use("/api/payments", webhookRoutes);
+
   app.use(cookieParser());
   app.use(express.json());
 
@@ -28,6 +34,8 @@ export async function createApp(): Promise<Express> {
   });
 
   app.use("/api/me", meRoutes);
+  app.use("/api/shops", shopRoutes);
+  app.use("/api/payments", paymentRoutes);
 
   app.use((req: Request, res: Response) => {
     res.status(404).json({ message: `Route not found: ${req.originalUrl}` });

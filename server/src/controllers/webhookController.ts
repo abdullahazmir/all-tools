@@ -1,0 +1,42 @@
+import { Request, Response } from "express";
+import { ObjectId } from "mongodb";
+import Stripe from "stripe";
+import { stripe } from "../config/stripe";
+import { env } from "../config/env";
+import { shopsCollection } from "../models/shop";
+import { usersCollection } from "../models/user";
+
+export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
+  const signature = req.headers["stripe-signature"];
+  if (!signature || typeof signature !== "string") {
+    res.status(400).json({ message: "Missing stripe-signature header" });
+    return;
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body as Buffer, signature, env.stripeWebhookSecret);
+  } catch (err) {
+    console.error("Webhook signature verification failed:", err);
+    res.status(400).json({ message: "Invalid webhook signature" });
+    return;
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const metadata = session.metadata ?? {};
+
+    if (metadata.type === "seller_fee" && metadata.shopId && metadata.userId) {
+      await shopsCollection().updateOne(
+        { _id: new ObjectId(metadata.shopId) },
+        { $set: { feePaid: true, status: "active", feePaymentId: session.id } }
+      );
+      await usersCollection().updateOne(
+        { _id: new ObjectId(metadata.userId) },
+        { $set: { role: "seller" } }
+      );
+    }
+  }
+
+  res.json({ received: true });
+}
