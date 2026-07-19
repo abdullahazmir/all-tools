@@ -1,16 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductCardSkeleton } from "@/components/ProductCardSkeleton";
 import { useProducts, type ProductFilters } from "@/lib/useProducts";
 import { apiFetch } from "@/lib/api";
 import type { Category } from "@/lib/types";
 
-export default function ExplorePage() {
+function ExploreContent() {
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [searchInput, setSearchInput] = useState("");
-  const [filters, setFilters] = useState<ProductFilters>({ page: 1 });
+  const [searchInput, setSearchInput] = useState(searchParams.get("search") ?? "");
+  const [filters, setFilters] = useState<ProductFilters>({
+    page: 1,
+    search: searchParams.get("search") ?? undefined,
+    category: searchParams.get("category") ?? undefined,
+  });
 
   useEffect(() => {
     apiFetch<{ categories: Category[] }>("/categories")
@@ -150,5 +156,13 @@ export default function ExplorePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-500">Loading…</div>}>
+      <ExploreContent />
+    </Suspense>
   );
 }

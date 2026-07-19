@@ -100,3 +100,10 @@ export interface AdminStats {
 export interface ShopStats {
   salesOverTime: { date: string; total: number }[];
 }
+
+export interface PublicStats {
+  shops: number;
+  products: number;
+  orders: number;
+  users: number;
+}

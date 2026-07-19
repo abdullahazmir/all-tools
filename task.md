@@ -200,15 +200,20 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 11 — Landing Page, Additional Pages, UI Polish
+## Phase 11 — Landing Page, Additional Pages, UI Polish (DONE)
 
 **Client**
-- [ ] Global theme tokens (Tailwind config): primary (steel blue), accent (safety orange), neutral (charcoal/light gray)
-- [ ] Shared `Navbar` (sticky, role-aware route list) and `Footer` (working links, contact info, social icons)
-- [ ] `/` landing page sections (7+): Hero (60-70vh, search + slider/CTA), Featured Categories, Top-Rated Shops, Trending Products, How It Works, Platform Stats counters, Become-a-Seller CTA, Testimonials, FAQ, Newsletter
-- [ ] `/about`, `/contact` pages
-- [ ] Full responsive pass: mobile/tablet/desktop for every page built so far
-- [ ] Replace any remaining placeholder text/images with real seeded content
+- [x] Theme tokens added to `globals.css` `@theme` (Tailwind v4 is CSS-config, no `tailwind.config.ts`): `brand-{50,100,600,700,800}` (steel blue), `accent-{50,100,600,700}` (safety orange), `charcoal`/`light-gray` (neutral) — existing pages already used blue-700/orange-600 consistently, so this formalizes rather than mass-renames
+- [x] `Navbar` — sticky, role-aware (buyer sees Cart, seller sees Add Product, everyone logged-in sees Dashboard/Logout), mobile hamburger menu (`md:hidden`/`md:flex`)
+- [x] `Footer` — About blurb, quick links, contact info, social icons linking to real platform homepages (facebook.com/x.com/instagram.com/linkedin.com — generic "follow us", not claiming a specific account, per discussion since ToolBazaar has no real accounts)
+- [x] `/` rebuilt from the create-next-app boilerplate — Hero (60–70vh, functional search + Explore/Become-a-Seller CTAs) + 8 real-data-driven sections: Featured Categories, Trending Products, Featured Shops, How It Works, Platform Stats, Become-a-Seller CTA, FAQ, Newsletter (Testimonials deliberately skipped — assignment's section list is explicitly "just examples", and fabricated quotes were the one section that couldn't be backed by real data)
+- [x] New server endpoints backing the landing page: `GET /api/stats/public` (shops/products/orders/users, no sensitive revenue data), `POST /api/contact` (stored in `contactMessages`), `POST /api/newsletter` (upserted into `newsletterSubscribers`)
+- [x] `/about`, `/contact` (working form, not static-only)
+- [x] `/explore` now reads initial `?search=`/`?category=` from the URL so Featured Categories and Hero search actually link somewhere real
+
+**Verified live**: full landing page scroll-through — hero, categories, trending products (real 3 products, correctly rating-sorted), featured shops, how-it-works, platform stats (matched real DB counts exactly: 1/3/1/3), CTA, FAQ, newsletter all render with real data; newsletter signup and contact form both confirmed persisted to MongoDB via direct DB check.
+
+**Not fully verified:** narrow-viewport responsive layout — the `resize_window` tool didn't actually change `window.innerWidth` in this session (confirmed via `matchMedia` check), so mobile/tablet breakpoints couldn't be screenshotted. The Navbar's `md:hidden`/`md:flex` split and the grids' `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` pattern (used consistently since Phase 5) are the standard Tailwind responsive approach, but worth a manual check in a real browser at some point.
 
 **Verify:** resize through mobile/tablet/desktop breakpoints on every page; every navbar/footer link resolves (no dead links); no lorem-ipsum remains.
 
