@@ -28,27 +28,74 @@ const productSchema = z.object({
 
 type ProductForm = z.infer<typeof productSchema>;
 
+type GenerateLength = "short" | "medium" | "long";
+
 function AddProductForm() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const [aiKeywords, setAiKeywords] = useState("");
+  const [aiLength, setAiLength] = useState<GenerateLength>("medium");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [hasGenerated, setHasGenerated] = useState(false);
+
   const {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: { condition: "new" },
   });
 
+  const watchedTitle = watch("title");
+  const watchedCategory = watch("category");
+
   useEffect(() => {
     apiFetch<{ categories: Category[] }>("/categories")
       .then(({ categories }) => setCategories(categories))
       .catch(() => setCategories([]));
   }, []);
+
+  async function handleGenerate() {
+    setAiError(null);
+    if (!watchedTitle || watchedTitle.trim().length < 2) {
+      setAiError("Enter a title first.");
+      return;
+    }
+    if (!watchedCategory) {
+      setAiError("Pick a category first.");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const result = await apiFetch<{ shortDesc: string; fullDesc: string }>(
+        "/ai/generate-description",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            title: watchedTitle,
+            category: watchedCategory,
+            keywords: aiKeywords,
+            length: aiLength,
+          }),
+        }
+      );
+      setValue("shortDesc", result.shortDesc, { shouldValidate: true });
+      setValue("fullDesc", result.fullDesc, { shouldValidate: true });
+      setHasGenerated(true);
+    } catch (err) {
+      setAiError(err instanceof ApiError ? err.message : "AI generation failed");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
@@ -99,34 +146,6 @@ function AddProductForm() {
           {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            Short description
-          </label>
-          <input
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-            placeholder="One line for the product card"
-            {...register("shortDesc")}
-          />
-          {errors.shortDesc && (
-            <p className="mt-1 text-xs text-red-600">{errors.shortDesc.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-            Full description
-          </label>
-          <textarea
-            rows={5}
-            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
-            {...register("fullDesc")}
-          />
-          {errors.fullDesc && (
-            <p className="mt-1 text-xs text-red-600">{errors.fullDesc.message}</p>
-          )}
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
@@ -163,6 +182,69 @@ function AddProductForm() {
               <option value="used">Used</option>
             </select>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950">
+          <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+            AI Content Generator
+          </p>
+          <p className="mt-0.5 text-xs text-blue-700 dark:text-blue-400">
+            Fill in the title and category above, then generate a description.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input
+              value={aiKeywords}
+              onChange={(e) => setAiKeywords(e.target.value)}
+              placeholder="Optional keywords/specs, comma-separated"
+              className="min-w-[200px] flex-1 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-blue-800 dark:bg-neutral-900 dark:text-neutral-100"
+            />
+            <select
+              value={aiLength}
+              onChange={(e) => setAiLength(e.target.value as GenerateLength)}
+              className="rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-blue-800 dark:bg-neutral-900 dark:text-neutral-100"
+            >
+              <option value="short">Short</option>
+              <option value="medium">Medium</option>
+              <option value="long">Long</option>
+            </select>
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={aiLoading}
+              className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-800 disabled:opacity-60"
+            >
+              {aiLoading ? "Generating…" : hasGenerated ? "Regenerate" : "Generate with AI"}
+            </button>
+          </div>
+          {aiError && <p className="mt-2 text-xs text-red-600">{aiError}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            Short description
+          </label>
+          <input
+            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+            placeholder="One line for the product card"
+            {...register("shortDesc")}
+          />
+          {errors.shortDesc && (
+            <p className="mt-1 text-xs text-red-600">{errors.shortDesc.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            Full description
+          </label>
+          <textarea
+            rows={5}
+            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100"
+            {...register("fullDesc")}
+          />
+          {errors.fullDesc && (
+            <p className="mt-1 text-xs text-red-600">{errors.fullDesc.message}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { RequireRole } from "@/components/auth/RequireRole";
+import { ProductCard } from "@/components/ProductCard";
+import { ProductCardSkeleton } from "@/components/ProductCardSkeleton";
 import { apiFetch } from "@/lib/api";
-import type { Order, OrderStatus } from "@/lib/types";
+import type { Order, OrderStatus, Product } from "@/lib/types";
 
 const statusStyles: Record<OrderStatus, string> = {
   pending: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
@@ -12,6 +14,53 @@ const statusStyles: Record<OrderStatus, string> = {
   shipped: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
   completed: "bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-300",
 };
+
+function RecommendedForYou() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [cheaperOnly, setCheaperOnly] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    const query = cheaperOnly && products.length > 0
+      ? `?maxPrice=${Math.round((products.reduce((s, p) => s + p.price, 0) / products.length) * 0.6)}`
+      : "";
+    apiFetch<{ products: Product[] }>(`/ai/recommendations${query}`)
+      .then(({ products }) => setProducts(products))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cheaperOnly]);
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200">
+          Recommended for you
+        </h2>
+        <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+          <input
+            type="checkbox"
+            checked={cheaperOnly}
+            onChange={(e) => setCheaperOnly(e.target.checked)}
+          />
+          Cheaper alternatives
+        </label>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {loading
+          ? [...Array(4)].map((_, i) => <ProductCardSkeleton key={i} />)
+          : products.map((product) => <ProductCard key={product._id} product={product} />)}
+      </div>
+      {!loading && products.length === 0 && (
+        <p className="mt-4 text-sm text-neutral-500">
+          Browse a few products and recommendations will show up here.
+        </p>
+      )}
+    </section>
+  );
+}
 
 function BuyerDashboardContent() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -27,8 +76,14 @@ function BuyerDashboardContent() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-50">
-        My orders
+        My dashboard
       </h1>
+
+      <div className="mt-6">
+        <RecommendedForYou />
+      </div>
+
+      <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200">My orders</h2>
 
       {loading ? (
         <div className="mt-6 space-y-2">

@@ -26,7 +26,7 @@ each phase depends on the previous one. Check items off as completed.
 - [x] Fill `server/.env` from `.env.example` (Mongo URI, `CLIENT_URL=http://localhost:3000`)
 - [x] Create Google Cloud OAuth client (web app), get `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`
 - [x] Create Stripe account (test mode), get `STRIPE_SECRET_KEY` — `STRIPE_WEBHOOK_SECRET` still pending, needs Stripe CLI once webhook route exists (Phase 3)
-- [x] Create Gemini API key (Google AI Studio), set `GEMINI_API_KEY` — ⚠️ verify format is `AIzaSy...`, current value doesn't match, re-check aistudio.google.com/apikey
+- [x] Create Gemini API key (Google AI Studio), set `GEMINI_API_KEY` — non-standard format (not `AIzaSy...`) but confirmed working directly against the Gemini REST API in Phase 8, no action needed
 - [x] `client/.env.local` — `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - [x] Verified server boots, connects to Atlas, `/api/health` responds `{"status":"ok"}`
 - [x] Verified client boots at `localhost:3000`, HTTP 200
@@ -149,34 +149,38 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 8 — AI Feature A: Content Generator (Gemini)
+## Phase 8 — AI Feature A: Content Generator (Gemini) (DONE)
 
 **Server**
-- [ ] `server/src/utils/gemini.ts` — Gemini client wrapper
-- [ ] `server/src/controllers/aiController.ts` — `generateDescription({title, category, keywords, length})` → prompt template per category → returns `{shortDesc, fullDesc}`
-- [ ] `server/src/routes/aiRoutes.ts` — `POST /api/ai/generate-description` (seller only)
+- [x] `server/src/utils/gemini.ts` — plain `fetch` against the Gemini REST API (`gemini-flash-latest`), not the `@google/generative-ai` SDK — that package was already stale/pre-1.0 and REST is simpler for a single-call use case; uninstalled it
+- [x] `server/src/controllers/aiController.ts` — `generateDescription` with a per-category tone map (10 categories) and per-length word-count guidance (short/medium/long), strict "raw JSON only" prompt + fence-stripping parser
+- [x] `server/src/routes/aiRoutes.ts` — `POST /api/ai/generate-description` (seller only)
 
 **Client**
-- [ ] Wire "Generate with AI" button on `/items/add`: length selector (short/medium/long), calls endpoint, fills description fields, "Regenerate" button
-- [ ] Loading state while generating
+- [x] AI Content Generator panel on `/items/add` (placed after Title/Category so both are set before generating) — keywords input, length select, Generate/Regenerate button, loading state, error display
 
-**Verify:** generate descriptions for 3 different categories, confirm tone/length actually changes with selector, regenerate produces a different result.
+**Verified live**: real Gemini calls across categories/lengths — grinding+medium produced power/precision-toned copy at the right length, hand-tools+short produced shorter durability-toned copy; Regenerate on the same inputs produced genuinely different phrasing ("Dominate the toughest..." → "Master tough cutting...").
 
 ---
 
-## Phase 9 — AI Feature B: Smart Recommendation Engine
+## Phase 9 — AI Feature B: Smart Recommendation Engine (DONE)
 
 **Server**
-- [ ] `aiInteractions` collection writes: log `view` (product details GET), `purchase` (order paid), `search` (explore query) — `server/src/models/aiInteraction.ts`
-- [ ] `server/src/controllers/aiController.ts` — `getRelatedProducts(productId)` (same category/price band, Gemini re-rank top N by relevance) and `getRecommendedForUser(userId)` (build candidate set from interaction history + category affinity, optionally Gemini re-rank)
-- [ ] `GET /api/ai/related/:productId`, `GET /api/ai/recommendations` (auth required)
+- [x] `server/src/models/aiInteraction.ts` — `view`/`purchase`/`search` interactions, logged from `productController.getProductById` (view), `productController.listProducts` (search, when a search term is present), and `webhookController` (purchase, on the same `order.status=paid` path that decrements stock)
+- [x] `attachUser` (optional-auth, from Phase 5) added to `GET /api/products` and reused on `GET /api/products/:id` so logging knows who's browsing without requiring login
+- [x] `server/src/utils/gemini.ts` — shared `rerankWithGemini(context, candidates, take)` helper: asks Gemini to pick+order the most relevant candidates, falls back to plain DB order on any parse/network failure
+- [x] `getRelatedProducts` — same-category candidates (price-band fallback if fewer than 4), Gemini-reranked to top 4
+- [x] `getRecommendedForUser` — category affinity from the user's last 50 view/purchase interactions (purchase weighted 3x), cold-start falls back to newest approved products; `?maxPrice=` query param powers the "cheaper alternatives" refine; Gemini-reranked to top 8
+- [x] `GET /api/ai/related/:productId` (public — shown on the public product page), `GET /api/ai/recommendations` (auth required)
+- [x] Refactored candidate queries to aggregate with the same shop-lookup stages as `productController` (exported `SHOP_LOOKUP_STAGES`) so related/recommended cards show shop name like everywhere else
 
 **Client**
-- [ ] "Related Tools" section on `/products/[id]` (fills the Phase 5 stub)
-- [ ] "Recommended For You" section on `/dashboard/buyer` and/or home hero area
-- [ ] Basic refine control (e.g. price slider / "cheaper alternatives" toggle) re-queries recommendations
+- [x] "Related Tools" section on `/products/[id]` (fills the Phase 5 stub), fetched server-side in parallel with the product itself
+- [x] "Recommended for you" section on `/dashboard/buyer` with a "Cheaper alternatives" checkbox that recomputes `maxPrice` from the current results and re-queries
 
-**Verify:** view several products in one category, confirm recommendations shift toward that category; related products differ per product.
+**Verified live**: seeded a 3rd product (hand-tools) so related/recommendation candidates had real same-category data. Related Tools on the wrench's page correctly surfaced the new pliers. A buyer who viewed+purchased hand-tools got hand-tools items ranked ahead of the power-tools drill in "Recommended for you"; toggling "Cheaper alternatives" correctly dropped the $89.99 drill and kept only the two sub-$19 items.
+
+**Session note:** hit repeated Chrome-extension renderer stalls this session (`Script injection timed out`) unrelated to app code — confirmed via server logs that the page itself returned 200 in ~3s each time; verified the stuck view directly via `curl` against the rendered HTML, then a fresh tab recovered and gave full visual confirmation.
 
 ---
 

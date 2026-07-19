@@ -3,8 +3,9 @@ import { ObjectId } from "mongodb";
 import { productsCollection, ProductCondition } from "../models/product";
 import { shopsCollection } from "../models/shop";
 import { getObjectIdParam } from "../utils/params";
+import { logInteraction } from "./aiController";
 
-const SHOP_LOOKUP_STAGES = [
+export const SHOP_LOOKUP_STAGES = [
   {
     $lookup: {
       from: "shops",
@@ -201,6 +202,10 @@ export async function getProductById(req: Request, res: Response): Promise<void>
     }
   }
 
+  if (req.user) {
+    void logInteraction(req.user.id, "view", { productId: id, category: product.category });
+  }
+
   res.json({ product });
 }
 
@@ -233,6 +238,10 @@ export async function listProducts(req: Request, res: Response): Promise<void> {
       { title: { $regex: search, $options: "i" } },
       { shopId: { $in: matchingShops.map((s) => s._id) } },
     ];
+
+    if (req.user) {
+      void logInteraction(req.user.id, "search", { query: search, category });
+    }
   }
 
   const sortStage: Record<string, 1 | -1> =

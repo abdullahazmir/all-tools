@@ -26,6 +26,7 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("reviews").createIndex({ productId: 1, userId: 1 }, { unique: true }),
     db.collection("orders").createIndex({ buyerId: 1 }),
     db.collection("orders").createIndex({ "items.shopId": 1 }),
+    db.collection("aiInteractions").createIndex({ userId: 1, createdAt: -1 }),
   ]);
 }
 

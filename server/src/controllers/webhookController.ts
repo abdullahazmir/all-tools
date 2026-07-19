@@ -7,6 +7,7 @@ import { shopsCollection } from "../models/shop";
 import { usersCollection } from "../models/user";
 import { ordersCollection } from "../models/order";
 import { productsCollection } from "../models/product";
+import { logInteraction } from "./aiController";
 
 export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
   const signature = req.headers["stripe-signature"];
@@ -56,10 +57,17 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
 
       if (order) {
         for (const item of order.items) {
-          await productsCollection().updateOne(
+          const product = await productsCollection().findOneAndUpdate(
             { _id: item.productId },
-            { $inc: { stock: -item.qty } }
+            { $inc: { stock: -item.qty } },
+            { returnDocument: "after" }
           );
+          if (product) {
+            void logInteraction(order.buyerId.toString(), "purchase", {
+              productId: item.productId,
+              category: product.category,
+            });
+          }
         }
       }
     }

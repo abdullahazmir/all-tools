@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BuyNowButton } from "@/components/BuyNowButton";
 import { ReviewSection } from "@/components/ReviewSection";
+import { ProductCard } from "@/components/ProductCard";
 import type { Product } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
@@ -15,13 +16,20 @@ async function getProduct(id: string): Promise<Product | null> {
   return data.product as Product;
 }
 
+async function getRelatedProducts(id: string): Promise<Product[]> {
+  const res = await fetch(`${API_URL}/ai/related/${id}`, { cache: "no-store" });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.products as Product[];
+}
+
 export default async function ProductDetailsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = await getProduct(id);
+  const [product, relatedProducts] = await Promise.all([getProduct(id), getRelatedProducts(id)]);
   if (!product) notFound();
 
   return (
@@ -125,6 +133,19 @@ export default async function ProductDetailsPage({
           {product.fullDesc}
         </p>
       </div>
+
+      {relatedProducts.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200">
+            Related Tools
+          </h2>
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {relatedProducts.map((related) => (
+              <ProductCard key={related._id} product={related} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <ReviewSection productId={product._id} />
     </div>
