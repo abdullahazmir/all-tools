@@ -33,25 +33,27 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 2 — Auth (BetterAuth + roles)
+## Phase 2 — Auth (BetterAuth + roles) (DONE)
 
 **Server**
-- [ ] Install/configure `better-auth` instance (`server/src/auth.ts`) — email/password + Google provider
-- [ ] Extend BetterAuth user schema with `role: "admin"|"seller"|"buyer"` (default `"buyer"`)
-- [ ] Mount BetterAuth handler at `/api/auth/*` in `app.ts`
-- [ ] `server/src/middleware/requireAuth.ts` — verifies session, attaches `req.user`
-- [ ] `server/src/middleware/requireRole.ts` — `requireRole("admin"|"seller")` guard
-- [ ] Seed script `server/src/scripts/seed.ts` — creates 3 demo accounts (admin/seller/buyer) with known passwords
+- [x] `server/src/auth.ts` — BetterAuth instance (`better-auth/minimal` + `mongodbAdapter`, loaded via dynamic `import()` since better-auth is ESM-only and the server is CJS), email/password + Google provider, cached singleton via `getAuth()`
+- [x] `role: "admin"|"seller"|"buyer"` additional field, default `"buyer"`, `input: false` (can't be self-assigned at signup — elevation happens server-side only)
+- [x] Mounted at `/api/auth/*splat` in `app.ts`, before `express.json()` (better-auth reads the raw body itself)
+- [x] `server/src/middleware/requireAuth.ts` — verifies session via `auth.api.getSession`, attaches `req.user`
+- [x] `server/src/middleware/requireRole.ts` — `requireRole(...roles)` guard
+- [x] `server/src/scripts/seed.ts` (`npm run seed`) — creates admin/seller/buyer demo accounts, password `Demo1234!`
+- [x] `GET /api/me` — smoke-test route for `requireAuth`
 
 **Client**
-- [ ] BetterAuth client setup (`client/src/lib/auth-client.ts`)
-- [ ] `/login` page — email/password form, validation (zod + react-hook-form), "Continue with Google" button, 3 demo-login buttons (autofill + submit)
-- [ ] `/register` page — name/email/password, role choice (Buyer / Apply as Seller → redirects to `/become-seller` after signup)
-- [ ] `AuthProvider` / session hook (`useSession`)
-- [ ] `middleware.ts` (Next.js) or client-side guard — redirect unauthenticated users hitting protected routes to `/login`
-- [ ] Role-based route guard component (`<RequireRole role="admin">`)
+- [x] `client/src/lib/auth-client.ts` — `createAuthClient` from `better-auth/react`, exports `useSession`/`signIn`/`signUp`/`signOut`
+- [x] `/login` — zod + react-hook-form validation, "Continue with Google", 3 demo buttons (autofill + auto-submit)
+- [x] `/register` — name/email/password/confirm, Buyer vs Apply-as-Seller toggle → routes to `/become-seller` (Phase 3) on seller choice
+- [x] `client/src/proxy.ts` — Next.js 16 renamed `middleware.ts` → `proxy.ts`/`export function proxy` (client's own `AGENTS.md` flagged this breaking change); redirects unauthenticated hits on protected prefixes to `/login?redirect=...`
+- [x] `client/src/components/auth/RequireRole.tsx` — client-side role guard for dashboards (used starting Phase 10)
 
-**Verify:** register buyer, login, login via each demo button, Google login round-trip, logout.
+**Bug caught + fixed:** `models/user.ts` originally pointed at Mongo collection `"users"` (plural); BetterAuth's mongo adapter actually stores users in `"user"` (singular). Seed script's role-elevation update was silently matching zero documents. Fixed by repointing the model at the real collection.
+
+**Verified live in browser** (Chrome, both dev servers running): demo-login button signs in and returns correct role end-to-end; register with "Apply as Seller" creates a `buyer`-role account and redirects to `/become-seller`; visiting `/items/add` while logged out redirects to `/login?redirect=%2Fitems%2Fadd`. Google OAuth round-trip not yet clicked through (needs a real Google consent screen) — client id/secret are wired and `signIn.social` is in place.
 
 ---
 

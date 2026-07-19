@@ -21,3 +21,10 @@ export function getDB(): Db {
   }
   return db;
 }
+
+export function getClient(): MongoClient {
+  if (!client) {
+    throw new Error("DB not connected yet — call connectDB() first");
+  }
+  return client;
+}
