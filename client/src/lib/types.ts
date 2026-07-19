@@ -53,3 +53,35 @@ export interface PaginatedProducts {
   limit: number;
   totalPages: number;
 }
+
+export type OrderStatus = "pending" | "paid" | "shipped" | "completed";
+
+export interface OrderItem {
+  productId: string;
+  shopId: string;
+  title: string;
+  image: string;
+  price: number;
+  qty: number;
+}
+
+export interface Order {
+  _id: string;
+  buyerId: string;
+  items: OrderItem[];
+  totalAmount: number;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  status: OrderStatus;
+  createdAt: string;
+}
+
+export interface Review {
+  _id: string;
+  productId: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}

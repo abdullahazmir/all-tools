@@ -23,6 +23,9 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("products").createIndex({ status: 1, category: 1, price: 1 }),
     db.collection("shops").createIndex({ shopName: 1 }),
     db.collection("shops").createIndex({ ownerUserId: 1 }, { unique: true }),
+    db.collection("reviews").createIndex({ productId: 1, userId: 1 }, { unique: true }),
+    db.collection("orders").createIndex({ buyerId: 1 }),
+    db.collection("orders").createIndex({ "items.shopId": 1 }),
   ]);
 }
 

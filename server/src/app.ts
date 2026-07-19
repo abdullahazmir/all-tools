@@ -7,6 +7,8 @@ import { meRoutes } from "./routes/meRoutes";
 import { shopRoutes } from "./routes/shopRoutes";
 import { productRoutes } from "./routes/productRoutes";
 import { categoryRoutes } from "./routes/categoryRoutes";
+import { orderRoutes } from "./routes/orderRoutes";
+import { reviewRoutes } from "./routes/reviewRoutes";
 import { paymentRoutes } from "./routes/paymentRoutes";
 import { webhookRoutes } from "./routes/webhookRoutes";
 
@@ -39,6 +41,8 @@ export async function createApp(): Promise<Express> {
   app.use("/api/shops", shopRoutes);
   app.use("/api/products", productRoutes);
   app.use("/api/categories", categoryRoutes);
+  app.use("/api/orders", orderRoutes);
+  app.use("/api/reviews", reviewRoutes);
   app.use("/api/payments", paymentRoutes);
 
   app.use((req: Request, res: Response) => {

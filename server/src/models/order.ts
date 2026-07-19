@@ -5,8 +5,11 @@ export type OrderStatus = "pending" | "paid" | "shipped" | "completed";
 
 export interface OrderItem {
   productId: ObjectId;
-  qty: number;
+  shopId: ObjectId;
+  title: string;
+  image: string;
   price: number;
+  qty: number;
 }
 
 export interface Order {
@@ -14,6 +17,7 @@ export interface Order {
   buyerId: ObjectId;
   items: OrderItem[];
   totalAmount: number;
+  stripeSessionId?: string;
   stripePaymentIntentId?: string;
   status: OrderStatus;
   createdAt: Date;

@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BuyNowButton } from "@/components/BuyNowButton";
+import { ReviewSection } from "@/components/ReviewSection";
 import type { Product } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
@@ -94,13 +96,7 @@ export default async function ProductDetailsPage({
             </Link>
           )}
 
-          <button
-            disabled
-            title="Cart & checkout land in the next build phase"
-            className="mt-6 w-full rounded-lg bg-orange-600 px-4 py-3 text-sm font-medium text-white opacity-50"
-          >
-            Buy Now — checkout coming soon
-          </button>
+          <BuyNowButton product={product} />
 
           <dl className="mt-8 grid grid-cols-2 gap-4 rounded-xl border border-neutral-200 p-4 text-sm dark:border-neutral-800">
             <div>
@@ -129,6 +125,8 @@ export default async function ProductDetailsPage({
           {product.fullDesc}
         </p>
       </div>
+
+      <ReviewSection productId={product._id} />
     </div>
   );
 }

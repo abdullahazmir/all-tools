@@ -5,6 +5,8 @@ import { stripe } from "../config/stripe";
 import { env } from "../config/env";
 import { shopsCollection } from "../models/shop";
 import { usersCollection } from "../models/user";
+import { ordersCollection } from "../models/order";
+import { productsCollection } from "../models/product";
 
 export async function handleStripeWebhook(req: Request, res: Response): Promise<void> {
   const signature = req.headers["stripe-signature"];
@@ -35,6 +37,31 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
         { _id: new ObjectId(metadata.userId) },
         { $set: { role: "seller" } }
       );
+    }
+
+    if (metadata.type === "order" && metadata.orderId) {
+      // Filtering on status:"pending" makes this idempotent against Stripe's
+      // at-least-once webhook delivery — a redelivered event won't double-decrement stock.
+      const order = await ordersCollection().findOneAndUpdate(
+        { _id: new ObjectId(metadata.orderId), status: "pending" },
+        {
+          $set: {
+            status: "paid",
+            stripePaymentIntentId:
+              typeof session.payment_intent === "string" ? session.payment_intent : undefined,
+          },
+        },
+        { returnDocument: "after" }
+      );
+
+      if (order) {
+        for (const item of order.items) {
+          await productsCollection().updateOne(
+            { _id: item.productId },
+            { $inc: { stock: -item.qty } }
+          );
+        }
+      }
     }
   }
 

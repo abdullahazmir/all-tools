@@ -114,33 +114,38 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 6 — Cart, Checkout, Orders
+## Phase 6 — Cart, Checkout, Orders (DONE)
 
 **Server**
-- [ ] `server/src/controllers/orderController.ts` — create order from cart items (status=pending), `POST /api/orders/checkout` creates Stripe Checkout Session (`metadata.type=order`, `metadata.orderId`), `GET /api/orders/mine`, `GET /api/orders` (admin), `GET /api/orders/shop/:shopId` (seller)
-- [ ] Webhook: handle `type=order` completion → set `order.status=paid`, decrement `product.stock` per item
+- [x] `server/src/models/order.ts` — extended `OrderItem` with denormalized `shopId`/`title`/`image` (snapshotted at checkout, so historical orders stay correct even if a product is later edited/deleted, and sellers can query orders by `items.shopId` without a join)
+- [x] `server/src/controllers/orderController.ts` — `createOrderCheckout` validates each line (approved + enough stock) before creating the order (`status=pending`) and the Stripe Checkout Session (`metadata.type=order`), `listMyOrders`, `listOrdersAdmin`, `listOrdersByShop` (ownership-checked against `:shopId`)
+- [x] `webhookController.ts` — `type=order` completion sets `order.status=paid` + `stripePaymentIntentId`, decrements `product.stock` per item; the update filters on `status:"pending"` so a redelivered Stripe webhook can't double-decrement stock
+- [x] Indexes: `orders.buyerId`, `orders.items.shopId`
 
 **Client**
-- [ ] Cart state (`zustand` or React context) — add/remove/update qty, persisted to localStorage
-- [ ] `/cart` page — line items, subtotal, "Checkout" button
-- [ ] `/checkout/success`, `/checkout/cancel` pages
-- [ ] Buyer order history in `/dashboard/buyer`
+- [x] `client/src/lib/cartStore.ts` — zustand + `persist` (localStorage), add/remove/updateQty clamped to stock
+- [x] `/cart` — line items, qty steppers, subtotal, Checkout → Stripe redirect
+- [x] `/checkout/success` (clears cart), `/checkout/cancel`
+- [x] `/dashboard/buyer` — order history with status badges
+- [x] `BuyNowButton` — replaces the Phase 5 disabled stub on `/products/[id]`, adds to cart and routes to `/cart`
+- [x] Bonus: `/dashboard/seller` now also shows recent orders for that shop (endpoint existed, had no UI)
 
-**Verify:** add 2 products to cart, checkout with Stripe test card, confirm order appears as paid and stock decrements.
+**Verified live** with a real Stripe test-card payment: Buy Now → cart → checkout → paid card → webhook fired → order `status: "paid"`, `stripePaymentIntentId` set, product stock decremented 40→39, order appears correctly in `/dashboard/buyer`.
 
 ---
 
-## Phase 7 — Reviews & Ratings
+## Phase 7 — Reviews & Ratings (DONE)
 
 **Server**
-- [ ] `server/src/controllers/reviewController.ts` — create review (buyer, must have purchased — check orders), list by product, recompute `product.ratingAvg`/`ratingCount` on write
-- [ ] `server/src/routes/reviewRoutes.ts`
+- [x] `server/src/models/review.ts` — added `userName` snapshot (avoids a join for display)
+- [x] `server/src/controllers/reviewController.ts` — `createReview` checks for a `paid`/`shipped`/`completed` order containing the product before allowing a review; upserts on `(productId, userId)` so a second submission updates rather than duplicates; recomputes `product.ratingAvg`/`ratingCount` via aggregation after every write
+- [x] Unique index on `reviews.(productId, userId)`
 
 **Client**
-- [ ] Review form + list on `/products/[id]` (star input, comment)
-- [ ] Show ratingAvg/count on `ProductCard` and details page
+- [x] `ReviewSection` component on `/products/[id]` — star input, comment, list of existing reviews, form relabels to "Update your review" if the signed-in user already reviewed
+- [x] ratingAvg/count already shown on `ProductCard` (Phase 5) and product details page
 
-**Verify:** only a buyer who purchased the product can submit a review; rating average updates immediately.
+**Verified live**: buyer who purchased the wrench successfully reviewed it (5★, recomputed `ratingAvg: 5, ratingCount: 1` on the product); a different account that never purchased the drill got `403 "You must purchase this product before reviewing it"` when hitting the endpoint directly.
 
 ---
 
