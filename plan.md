@@ -169,5 +169,5 @@ disambiguated by Checkout Session `metadata.type`:
 - [x] Live website URL: https://all-tools-lilac.vercel.app (client, Vercel)
 - [x] Live backend: https://toolbazaar-api.onrender.com (Express, Render)
 - [x] GitHub repo link: https://github.com/abdullahazmir/all-tools (monorepo, `/client` + `/server`)
-- [ ] Google OAuth authorized redirect URI needs `https://all-tools-lilac.vercel.app/api/auth/callback/google` added in Google Cloud Console (manual step, no API access to do it programmatically)
+- [x] Google OAuth authorized redirect URI `https://all-tools-lilac.vercel.app/api/auth/callback/google` added in Google Cloud Console, `SERVER_URL` env var switched to Vercel domain, confirmed working
 - [ ] All 13 assignment sections verified against this plan before submitting

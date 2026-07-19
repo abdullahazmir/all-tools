@@ -226,7 +226,7 @@ each phase depends on the previous one. Check items off as completed.
 - [x] Deployed `/client` to Vercel (`abdullahazmirs-projects/all-tools`) via CLI after user ran `vercel login` interactively
 - [x] Disabled Vercel Deployment Protection (SSO wall) on the production alias — was blocking public access entirely; user did this via dashboard since it's an account/security setting
 - [x] Stripe webhook created via Stripe API pointed at the deployed backend, secret wired into Render env vars
-- [ ] Google OAuth authorized redirect URI — **needs manual action**: add `https://all-tools-lilac.vercel.app/api/auth/callback/google` in Google Cloud Console (no API access to do this programmatically)
+- [x] Google OAuth authorized redirect URI added, `SERVER_URL` env var pointed at Vercel domain, retested live — real Google account chooser loads, no more `redirect_uri_mismatch`
 - [x] Update `plan.md` submission checklist with live URLs
 
 **Two real production bugs caught and fixed here, not just config:**
@@ -234,8 +234,21 @@ each phase depends on the previous one. Check items off as completed.
 2. **Session cookie invisible cross-domain.** Client (Vercel) and server (Render) are genuinely different sites. Fixing `SameSite=Lax→None` (first attempted fix) only solved half of it — client-side `fetch()` calls started working, but any *hard navigation* to a protected route still bounced to `/login`, because `proxy.ts` runs on the `vercel.app` domain and can never see a cookie owned by `onrender.com`, no matter what `SameSite` says (that attribute only governs whether an *already-owned* cookie attaches to a request — not which domain owns it). Real fix: added a Next.js rewrite (`/api/:path*` → the Render backend via a server-only `API_ORIGIN` env var) so browser-facing API calls are same-origin, making the cookie belong to `vercel.app` itself. This also transparently fixes the Google OAuth callback, which sets the cookie via a top-level redirect Google makes, not a `fetch()` — same-origin-only reasoning applies there too. Server components doing their own Node-side `fetch()` (home/product/shop pages) needed a *different*, still-absolute URL (`serverApiUrl.ts`, preferring `API_ORIGIN`) since Node can't resolve a relative `/api` path the way a browser resolves it against the current page.
 
 **Verified live in production**: demo login persists across both client-side navigation and hard page reloads/direct URL visits; admin dashboard renders real stats/charts matching the DB exactly; AI content generation confirmed working from Render's network (different egress than local dev). Full purchase/review flow not re-run against production this session (already verified thoroughly against this same codebase in Phases 3/6/7) — worth a final manual pass before submission.
-- [ ] Final pass against assignment's 13 numbered sections
-- [ ] Submit: live URL + GitHub repo link
+
+- [x] **Final 13-section verify pass** (this session, production, all 3 demo roles + logged-out):
+  - Navbar: logged-out shows Home/Explore/About/Contact/Login/Register (6); logged-in adds Dashboard + role-specific link (Cart for buyer, Add Product for seller) + Logout — role-aware, confirmed for all 3 roles.
+  - Hero + 8 landing sections confirmed rendering real DB data: Featured Categories (10), Trending Products, Featured Shops, How It Works, Platform Stats (2/4/2/5 — matches DB), Become-a-Seller CTA, FAQ, Newsletter.
+  - Footer: About blurb, quick links, contact info, social icons, all resolve — no dead links.
+  - `/explore`: category filter, sort, search all confirmed working against live data.
+  - `/products/[id]`: gallery, price, rating, shop mini-card link, Buy Now, specs table, description, reviews form all present and correct.
+  - `/shops/[id]`: shop header + full product grid confirmed.
+  - Auth: `/login`, `/register` render correctly; all 3 demo-login buttons (Admin/Seller/Buyer) verified end-to-end via session check; Google OAuth confirmed fixed (see above).
+  - Protected routes: `/items/add`, `/items/manage`, `/dashboard/seller` all correctly bounce logged-out visitors to `/login?redirect=...`; render correctly once signed in as seller (product table, AI generator panel, shop status/chart/orders).
+  - `/dashboard/admin`: stat tiles, both Recharts charts, pending queues (empty — nothing awaiting review), all-orders table — all match DB exactly.
+  - `/dashboard/buyer`: Recommended-for-you + Cheaper-alternatives toggle, order history, profile section all present with real data.
+  - `/about`, `/contact`, `/cart`, `/become-seller` all load correctly.
+  - **New observation, not a bug but worth knowing**: Render free-tier services sleep on idle — first hit after a while shows the client's "Loading…" state for ~3-5s while the backend cold-starts (`/become-seller` briefly showed a bare "Loading…" before shop-registration form appeared). If a professor's first click lands during a cold start it could look broken; consider hitting the live API once shortly before any live demo/grading, or accept the delay since it self-resolves.
+- [x] Submit: live URL + GitHub repo link (both in plan.md / below, ready to hand in)
 
 **Live URLs:**
 - Client: https://all-tools-lilac.vercel.app
