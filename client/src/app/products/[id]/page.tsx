@@ -5,8 +5,7 @@ import { BuyNowButton } from "@/components/BuyNowButton";
 import { ReviewSection } from "@/components/ReviewSection";
 import { ProductCard } from "@/components/ProductCard";
 import type { Product } from "@/lib/types";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+import { SERVER_API_URL as API_URL } from "@/lib/serverApiUrl";
 
 async function getProduct(id: string): Promise<Product | null> {
   const res = await fetch(`${API_URL}/products/${id}`, { cache: "no-store" });

@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import { ProductCard } from "@/components/ProductCard";
 import type { Product, Shop } from "@/lib/types";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api";
+import { SERVER_API_URL as API_URL } from "@/lib/serverApiUrl";
 
 async function getShop(id: string): Promise<Shop | null> {
   const res = await fetch(`${API_URL}/shops/${id}`, { cache: "no-store" });
