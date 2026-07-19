@@ -16,7 +16,7 @@ async function buildAuth() {
 
   return betterAuth({
     appName: "ToolBazaar",
-    baseURL: `http://localhost:${env.port}`,
+    baseURL: env.serverUrl,
     basePath: "/api/auth",
     secret: env.betterAuthSecret,
     trustedOrigins: [env.clientUrl],
