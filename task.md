@@ -221,11 +221,23 @@ each phase depends on the previous one. Check items off as completed.
 
 ## Phase 12 — Deploy & Submit
 
-- [ ] Deploy `/client` to Vercel — set env vars (`NEXT_PUBLIC_API_URL`, Google client id)
-- [ ] Deploy `/server` to Railway/Render — set env vars incl. production Stripe keys + webhook secret pointed at deployed URL
-- [ ] Point Stripe webhook (live/test) to deployed `/api/payments/webhook`
-- [ ] Update Google OAuth authorized redirect URIs with production URLs
-- [ ] Smoke-test full flow in production: register seller → pay fee → add product → admin approve → buyer buy → review
-- [ ] Update `plan.md` submission checklist with live URL
+- [x] Deployed `/server` to Render (`toolbazaar-api`, `srv-d9e43turnols73dhfs60`) via the Render API directly (user provided an API key rather than a URL, confirmed that was intentional). Driven end-to-end via API: created the service, set all env vars, created the Stripe webhook endpoint via Stripe's API and wired its secret in, fixed the build command (`npm install --include=dev && npm run build` — plain `npm install` skips devDependencies when `NODE_ENV=production` is set, which is exactly where `@types/*`/`typescript` live)
+- [x] Deleted a misconfigured duplicate Render service (`all-tools`, wrong rootDir/build command from an earlier dashboard-based connection attempt) after confirming with the user
+- [x] Deployed `/client` to Vercel (`abdullahazmirs-projects/all-tools`) via CLI after user ran `vercel login` interactively
+- [x] Disabled Vercel Deployment Protection (SSO wall) on the production alias — was blocking public access entirely; user did this via dashboard since it's an account/security setting
+- [x] Stripe webhook created via Stripe API pointed at the deployed backend, secret wired into Render env vars
+- [ ] Google OAuth authorized redirect URI — **needs manual action**: add `https://all-tools-lilac.vercel.app/api/auth/callback/google` in Google Cloud Console (no API access to do this programmatically)
+- [x] Update `plan.md` submission checklist with live URLs
+
+**Two real production bugs caught and fixed here, not just config:**
+1. **BetterAuth `baseURL` was hardcoded to `http://localhost:${port}`** — would have broken auth entirely outside localhost. Added a `SERVER_URL` env var.
+2. **Session cookie invisible cross-domain.** Client (Vercel) and server (Render) are genuinely different sites. Fixing `SameSite=Lax→None` (first attempted fix) only solved half of it — client-side `fetch()` calls started working, but any *hard navigation* to a protected route still bounced to `/login`, because `proxy.ts` runs on the `vercel.app` domain and can never see a cookie owned by `onrender.com`, no matter what `SameSite` says (that attribute only governs whether an *already-owned* cookie attaches to a request — not which domain owns it). Real fix: added a Next.js rewrite (`/api/:path*` → the Render backend via a server-only `API_ORIGIN` env var) so browser-facing API calls are same-origin, making the cookie belong to `vercel.app` itself. This also transparently fixes the Google OAuth callback, which sets the cookie via a top-level redirect Google makes, not a `fetch()` — same-origin-only reasoning applies there too. Server components doing their own Node-side `fetch()` (home/product/shop pages) needed a *different*, still-absolute URL (`serverApiUrl.ts`, preferring `API_ORIGIN`) since Node can't resolve a relative `/api` path the way a browser resolves it against the current page.
+
+**Verified live in production**: demo login persists across both client-side navigation and hard page reloads/direct URL visits; admin dashboard renders real stats/charts matching the DB exactly; AI content generation confirmed working from Render's network (different egress than local dev). Full purchase/review flow not re-run against production this session (already verified thoroughly against this same codebase in Phases 3/6/7) — worth a final manual pass before submission.
 - [ ] Final pass against assignment's 13 numbered sections
 - [ ] Submit: live URL + GitHub repo link
+
+**Live URLs:**
+- Client: https://all-tools-lilac.vercel.app
+- Backend: https://toolbazaar-api.onrender.com
+- Repo: https://github.com/abdullahazmir/all-tools

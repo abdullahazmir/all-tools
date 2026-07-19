@@ -166,6 +166,8 @@ disambiguated by Checkout Session `metadata.type`:
 
 ## 11. Submission Checklist
 
-- [ ] Live website URL (client deployed)
-- [ ] GitHub repo link (monorepo, `/client` + `/server`)
+- [x] Live website URL: https://all-tools-lilac.vercel.app (client, Vercel)
+- [x] Live backend: https://toolbazaar-api.onrender.com (Express, Render)
+- [x] GitHub repo link: https://github.com/abdullahazmir/all-tools (monorepo, `/client` + `/server`)
+- [ ] Google OAuth authorized redirect URI needs `https://all-tools-lilac.vercel.app/api/auth/callback/google` added in Google Cloud Console (manual step, no API access to do it programmatically)
 - [ ] All 13 assignment sections verified against this plan before submitting
