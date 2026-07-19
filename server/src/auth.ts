@@ -30,6 +30,16 @@ async function buildAuth() {
         clientSecret: env.googleClientSecret,
       },
     },
+    // Client (Vercel) and server (Render) are genuinely different sites in production —
+    // SameSite=Lax (the default) blocks the session cookie on cross-site fetches. Only
+    // apply None+Secure in production: Secure cookies require HTTPS, which local dev doesn't have.
+    advanced:
+      env.nodeEnv === "production"
+        ? {
+            useSecureCookies: true,
+            defaultCookieAttributes: { sameSite: "none", secure: true },
+          }
+        : undefined,
     user: {
       additionalFields: {
         role: {
