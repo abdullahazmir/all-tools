@@ -20,16 +20,16 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 1 — Env & Infra Setup
+## Phase 1 — Env & Infra Setup (DONE)
 
-- [ ] Create MongoDB Atlas cluster + database `toolbazaar`, get connection string
-- [ ] Fill `server/.env` from `.env.example` (Mongo URI, `CLIENT_URL=http://localhost:3000`)
-- [ ] Create Google Cloud OAuth client (web app), get `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, add `http://localhost:3000` + `http://localhost:5000` redirect URIs
-- [ ] Create Stripe account (test mode), get `STRIPE_SECRET_KEY`, install Stripe CLI, `stripe listen` → get `STRIPE_WEBHOOK_SECRET`
-- [ ] Create Gemini API key (Google AI Studio), set `GEMINI_API_KEY`
-- [ ] `client/.env.local` — `NEXT_PUBLIC_API_URL=http://localhost:5000/api`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
-- [ ] Verify `npm run dev` boots server and connects to Atlas (check `MongoDB connected` log)
-- [ ] Verify `npm run dev` boots client at `localhost:3000`
+- [x] Create MongoDB Atlas cluster + database `toolbazaar`, get connection string
+- [x] Fill `server/.env` from `.env.example` (Mongo URI, `CLIENT_URL=http://localhost:3000`)
+- [x] Create Google Cloud OAuth client (web app), get `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`
+- [x] Create Stripe account (test mode), get `STRIPE_SECRET_KEY` — `STRIPE_WEBHOOK_SECRET` still pending, needs Stripe CLI once webhook route exists (Phase 3)
+- [x] Create Gemini API key (Google AI Studio), set `GEMINI_API_KEY` — ⚠️ verify format is `AIzaSy...`, current value doesn't match, re-check aistudio.google.com/apikey
+- [x] `client/.env.local` — `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- [x] Verified server boots, connects to Atlas, `/api/health` responds `{"status":"ok"}`
+- [x] Verified client boots at `localhost:3000`, HTTP 200
 
 ---
 
