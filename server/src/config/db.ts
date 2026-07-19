@@ -12,7 +12,18 @@ export async function connectDB(): Promise<Db> {
   await client.connect();
   db = client.db();
   console.log("MongoDB connected");
+  await ensureIndexes(db);
   return db;
+}
+
+async function ensureIndexes(db: Db): Promise<void> {
+  await Promise.all([
+    db.collection("products").createIndex({ title: "text" }),
+    db.collection("products").createIndex({ shopId: 1, status: 1 }),
+    db.collection("products").createIndex({ status: 1, category: 1, price: 1 }),
+    db.collection("shops").createIndex({ shopName: 1 }),
+    db.collection("shops").createIndex({ ownerUserId: 1 }, { unique: true }),
+  ]);
 }
 
 export function getDB(): Db {

@@ -42,3 +42,23 @@ export async function requireAuth(
   };
   next();
 }
+
+/** Populates req.user when a session cookie is present, but never blocks the request. */
+export async function attachUser(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  const { fromNodeHeaders } = await import("better-auth/node");
+  const auth = await getAuth();
+
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(req.headers),
+  });
+
+  if (session) {
+    req.user = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+      role: (session.user as { role: Role }).role,
+    };
+  }
+  next();
+}

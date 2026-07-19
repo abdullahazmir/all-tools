@@ -77,34 +77,40 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 4 — Products (CRUD + Approval)
+## Phase 4 — Products (CRUD + Approval) (DONE)
 
 **Server**
-- [ ] Seed `categories` collection (grinding, drilling, cutting, hand tools, power tools, measuring, safety gear, …)
-- [ ] `server/src/controllers/productController.ts` — create (seller, status=pending), update (seller, own shop only), delete (seller/admin), get by id (public), list w/ query params (search, category, price range, rating, condition, sort, page/limit), admin approve/reject
-- [ ] `server/src/routes/productRoutes.ts` — wire routes + `requireAuth`/`requireRole` guards per endpoint
-- [ ] Text index on `products.title` + `shops.shopName` lookup for search
+- [x] Seeded `categories` (10: power tools, hand tools, grinding, drilling, cutting, measuring, fasteners, safety gear, welding, generators) via `npm run seed:categories`
+- [x] `server/src/controllers/productController.ts` — create (requires active/fee-paid shop, status=pending), update (owner-only, resets to pending on edit), delete (owner or admin), get by id (public if approved, else owner/admin only via `attachUser`), list w/ search+category+shopId+price range+rating+condition+sort+pagination, admin list/approve/reject
+- [x] `server/src/routes/productRoutes.ts` — wired with `requireAuth`/`requireRole`/`attachUser` per endpoint
+- [x] `server/src/middleware/requireAuth.ts` — added `attachUser` (optional-auth variant that never 401s, needed for the public-but-owner-aware product details endpoint)
+- [x] Indexes added in `ensureIndexes()` (`db.ts`): text index on `products.title`, `shops.shopName`, compound indexes on `(shopId,status)` and `(status,category,price)`, unique index on `shops.ownerUserId` (one shop per user, enforced at the DB level too)
+- [x] `GET /api/categories`
 
 **Client**
-- [ ] `/items/add` — protected (seller only), form (title, shortDesc, fullDesc, category select, price, condition, stock, image URL list), "Generate with AI" button stub (wired in Phase 8), submit → POST product
-- [ ] `/items/manage` — protected (seller only), table/grid of own products, status badge, View + Delete actions
-- [ ] Admin product-approval queue view (data table, approve/reject buttons) — build as part of `/dashboard/admin` in Phase 10, or stub now
+- [x] `/items/add` — `RequireRole("seller")`, zod-validated form, submits to `POST /api/products`
+- [x] `/items/manage` — table with status badges, View/Delete
+- [x] `/dashboard/admin` — pending shops queue (closes a Phase 3 gap — approve/suspend endpoints existed but had no UI) + pending products queue, both with approve/reject actions
 
-**Verify:** seller adds a product (status pending), confirm it's invisible on public listing until admin approves.
+**Bug caught + fixed:** `RequireRole` unmounted its children back to a "Loading…" screen on *every* `isPending` flicker from `useSession` (e.g. a background session refetch), not just the first load — wiping any in-progress form input. Fixed by only gating on first resolution (`hasResolvedOnce` ref), so later refetches don't blank already-rendered protected pages.
+
+**Verify:** confirmed live — seller-added products are invisible on `/explore` while `pending`, and appear immediately after admin approval via `/dashboard/admin`.
 
 ---
 
-## Phase 5 — Explore & Product Details
+## Phase 5 — Explore & Product Details (DONE)
 
 **Client**
-- [ ] `client/src/components/ProductCard.tsx` — fixed size/radius, image, title, short desc, price/rating meta, "View Details" link
-- [ ] `client/src/components/ProductCardSkeleton.tsx`
-- [ ] `/explore` page — search bar (product name / shop name), filter panel (category, price range, rating, condition), sort dropdown (price asc/desc, newest, top rated), pagination controls, 4-col desktop grid → 2 → 1 responsive
-- [ ] TanStack Query hook `useProducts(filters)` hitting `GET /api/products`
-- [ ] `/products/[id]` page — image gallery, overview, specs table, reviews list, related products section (stub → Phase 9), shop mini-card (links to `/shops/[id]`), "Buy Now" button
-- [ ] `/shops/[id]` page — shop header + grid of that shop's approved products (reuses `ProductCard`)
+- [x] `client/src/components/ProductCard.tsx` / `ProductCardSkeleton.tsx`
+- [x] `client/src/components/Providers.tsx` — wires `QueryClientProvider` into root layout (installed in Phase 0, never actually mounted until now)
+- [x] `/explore` — search + category/condition/rating/price filters + sort + pagination, 4/2/1 responsive grid (Tailwind breakpoints; not re-verified visually at narrow widths this session, revisit in Phase 11 polish pass)
+- [x] `client/src/lib/useProducts.ts` — TanStack Query hook, query key includes serialized filter string
+- [x] `/products/[id]` — server component (public, no client JS needed to view), gallery, specs, shop mini-card, "Buy Now" present but disabled with an honest "checkout coming soon" label (real checkout is Phase 6, not faked)
+- [x] `/shops/[id]` — server component, shop header + product grid, uses a proper `shopId` query param on `/api/products` rather than the fuzzy name search
 
-**Verify:** search by shop name returns that shop's products; combining 2+ filters narrows results correctly; pagination changes page without full reload.
+**Verified live**: added 2 products across different categories/shops via the seller demo account, confirmed pending→hidden→admin-approved→visible-on-/explore end to end; category filter narrows correctly; search by shop name returns all of that shop's products; product details and shop pages both render real data correctly.
+
+**Session note:** browser-automation click/keyboard delivery was unreliable for stretches this session (typed/clicked input sometimes landed on `<body>` instead of the target element, unrelated to any app code — confirmed by dispatching the same interactions as native DOM events instead, which worked every time and hit the exact same React handlers). Not a product bug; just noting in case it recurs.
 
 ---
 

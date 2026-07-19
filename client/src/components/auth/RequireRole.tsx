@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 
@@ -15,27 +15,30 @@ export function RequireRole({
 }) {
   const { data: session, isPending } = useSession();
   const router = useRouter();
-  const allowedRoles = Array.isArray(role) ? role : [role];
+  const allowedRolesRef = useRef(Array.isArray(role) ? role : [role]);
+  const [hasResolvedOnce, setHasResolvedOnce] = useState(false);
 
   useEffect(() => {
     if (isPending) return;
+    setHasResolvedOnce(true);
     if (!session) {
       router.replace("/login");
       return;
     }
     const userRole = (session.user as { role?: Role }).role;
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    if (!userRole || !allowedRolesRef.current.includes(userRole)) {
       router.replace("/");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPending, session]);
+  }, [isPending, session, router]);
 
-  if (isPending) {
+  // Only gate on the *first* resolution — a later refetch (e.g. on tab focus)
+  // must not unmount already-rendered children and wipe in-progress form state.
+  if (isPending && !hasResolvedOnce) {
     return <div className="flex min-h-[40vh] items-center justify-center text-sm text-neutral-500">Loading…</div>;
   }
 
   const userRole = (session?.user as { role?: Role } | undefined)?.role;
-  if (!session || !userRole || !allowedRoles.includes(userRole)) {
+  if (!hasResolvedOnce || !session || !userRole || !allowedRolesRef.current.includes(userRole)) {
     return null;
   }
 
