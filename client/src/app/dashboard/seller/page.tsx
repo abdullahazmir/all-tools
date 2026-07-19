@@ -2,9 +2,43 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { RequireRole } from "@/components/auth/RequireRole";
 import { apiFetch } from "@/lib/api";
-import type { Order, Shop } from "@/lib/types";
+import type { Order, Shop, ShopStats } from "@/lib/types";
+
+function SalesChart({ shopId }: { shopId: string }) {
+  const [stats, setStats] = useState<ShopStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch<ShopStats>(`/shops/${shopId}/stats`)
+      .then(setStats)
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, [shopId]);
+
+  if (loading) return <div className="h-56 animate-pulse rounded-xl bg-neutral-100 dark:bg-neutral-800" />;
+  if (!stats || stats.salesOverTime.length === 0) {
+    return <p className="text-sm text-neutral-500">No sales yet.</p>;
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={stats.salesOverTime}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-neutral-200 dark:stroke-neutral-800" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip formatter={(value) => [`$${Number(value).toFixed(2)}`, "Sales"]} />
+            <Line type="monotone" dataKey="total" stroke="#ea580c" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
 
 function ShopStatusBanner({ shop }: { shop: Shop }) {
   const statusStyles: Record<Shop["status"], string> = {
@@ -113,6 +147,15 @@ function SellerDashboardContent() {
               Manage products
             </Link>
           </div>
+
+          <section className="mt-8">
+            <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200">
+              Sales over time
+            </h2>
+            <div className="mt-3">
+              <SalesChart shopId={shop._id} />
+            </div>
+          </section>
 
           <section className="mt-8">
             <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200">

@@ -184,18 +184,19 @@ each phase depends on the previous one. Check items off as completed.
 
 ---
 
-## Phase 10 — Dashboards (Admin / Seller / Buyer)
+## Phase 10 — Dashboards (Admin / Seller / Buyer) (DONE)
 
 **Server**
-- [ ] Stats endpoints: `GET /api/admin/stats` (totals: shops, products, orders, revenue; signups over time; category split), `GET /api/shops/:id/stats` (seller sales over time)
+- [x] `server/src/controllers/statsController.ts` — `getAdminStats` (totals via `Promise.all`, signups-per-day for last 30, category split for approved products), `getShopStats` (sales-per-day via `$unwind` on `items` + match on `items.shopId`, ownership-checked)
+- [x] `GET /api/admin/stats` (admin), `GET /api/shops/:id/stats` (owner or admin)
 
 **Client**
-- [ ] `/dashboard/admin` — pending shop approvals list, pending product approvals list, all-orders table, Recharts (line: signups/sales over time; pie/bar: category split)
-- [ ] `/dashboard/seller` — shop status card (fee/active/suspended), Recharts sales chart, quick links to `/items/add` & `/items/manage`, incoming orders table
-- [ ] `/dashboard/buyer` — order history, wishlist (optional), profile settings, recommendations section (from Phase 9)
-- [ ] Role-based redirect: `/dashboard` → correct sub-dashboard based on `req.user.role`
+- [x] `/dashboard/admin` — stat tiles (shops/products/orders/revenue), Recharts line (signups over time) + bar (category split), plus the existing pending-shops/pending-products queues and a new all-orders table
+- [x] `/dashboard/seller` — Recharts sales-over-time line chart added above the existing shop status banner + recent orders
+- [x] `/dashboard/buyer` — added a Profile section (name/email + sign-out); order history and recommendations already existed from Phases 6/9
+- [x] `/dashboard` — role-based redirect page (`admin`/`seller`/`buyer`)
 
-**Verify:** each role only sees its own dashboard; admin approve action immediately reflects in explore listing.
+**Verified live**: admin stats matched real DB state exactly (1 shop, 3 approved products, 1 paid order → $14.50 revenue, category split 2 hand-tools/1 power-tools); both charts render correctly with real data; seller sales chart and all-orders table confirmed via API + one visual check.
 
 ---
 

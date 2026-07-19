@@ -85,3 +85,18 @@ export interface Review {
   comment: string;
   createdAt: string;
 }
+
+export interface AdminStats {
+  totals: {
+    shops: number;
+    products: number;
+    orders: number;
+    revenue: number;
+  };
+  signupsOverTime: { date: string; count: number }[];
+  categorySplit: { category: string; count: number }[];
+}
+
+export interface ShopStats {
+  salesOverTime: { date: string; total: number }[];
+}

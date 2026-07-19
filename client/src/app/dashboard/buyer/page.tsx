@@ -1,12 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RequireRole } from "@/components/auth/RequireRole";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductCardSkeleton } from "@/components/ProductCardSkeleton";
 import { apiFetch } from "@/lib/api";
+import { authClient, useSession } from "@/lib/auth-client";
 import type { Order, OrderStatus, Product } from "@/lib/types";
+
+function ProfileSettings() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  if (!session) return null;
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
+  return (
+    <section className="mt-10 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <h2 className="text-lg font-medium text-neutral-800 dark:text-neutral-200">Profile</h2>
+      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-neutral-500">Name</dt>
+          <dd className="text-neutral-900 dark:text-neutral-100">{session.user.name}</dd>
+        </div>
+        <div>
+          <dt className="text-neutral-500">Email</dt>
+          <dd className="text-neutral-900 dark:text-neutral-100">{session.user.email}</dd>
+        </div>
+      </dl>
+      <button
+        onClick={handleSignOut}
+        className="mt-4 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+      >
+        Sign out
+      </button>
+    </section>
+  );
+}
 
 const statusStyles: Record<OrderStatus, string> = {
   pending: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
@@ -127,6 +164,8 @@ function BuyerDashboardContent() {
           ))}
         </div>
       )}
+
+      <ProfileSettings />
     </div>
   );
 }
