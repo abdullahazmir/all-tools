@@ -7,17 +7,21 @@ import { productsCollection } from "../models/product";
 
 const DEMO_PASSWORD = "Demo1234!";
 
+// Real, category-accurate product photos (Wikimedia Commons, openly licensed),
+// re-hosted on ImgBB. Not generic stock photography — each one is an actual
+// example of that category's tools (e.g. a real cordless drill, real bolt
+// cutters), not just a themed placeholder.
 const CATEGORY_IMAGES: Record<string, string> = {
-  "power-tools": "https://i.ibb.co/ymR4WTy8/1e703bc97acc.jpg",
-  "hand-tools": "https://i.ibb.co/S4MZ977J/3c8a111bae24.jpg",
-  grinding: "https://i.ibb.co/twVnbYmt/2efdc93e4243.jpg",
-  drilling: "https://i.ibb.co/FbSSxKLD/07f71597a18e.jpg",
-  cutting: "https://i.ibb.co/ycWqm6m3/bd87381873af.jpg",
-  measuring: "https://i.ibb.co/ZRR5zcSF/b1395fb12c75.jpg",
-  fasteners: "https://i.ibb.co/YTwkVdFQ/21fe03d4e8cd.jpg",
-  "safety-gear": "https://i.ibb.co/zWLcTss9/87434bba351c.jpg",
-  welding: "https://i.ibb.co/0px1fP1V/7285e36b397e.jpg",
-  generators: "https://i.ibb.co/dwcrqWz9/ed90a9ac8ad5.jpg",
+  "power-tools": "https://i.ibb.co/MxcrSssM/toolbazaar-real-power-tools.jpg",
+  "hand-tools": "https://i.ibb.co/yHY3SCh/toolbazaar-real-hand-tools.jpg",
+  grinding: "https://i.ibb.co/8gVvFKfk/toolbazaar-real-grinding.jpg",
+  drilling: "https://i.ibb.co/1fQryXLM/toolbazaar-real-drilling.jpg",
+  cutting: "https://i.ibb.co/XrwRjkWY/toolbazaar-real-cutting.jpg",
+  measuring: "https://i.ibb.co/3Y4KnvTZ/toolbazaar-real-measuring.jpg",
+  fasteners: "https://i.ibb.co/d4rC7VYj/toolbazaar-real-fasteners.jpg",
+  "safety-gear": "https://i.ibb.co/Qvhhcq8T/toolbazaar-real-safety-gear.jpg",
+  welding: "https://i.ibb.co/8DY7z2Fc/toolbazaar-real-welding.jpg",
+  generators: "https://i.ibb.co/gLmMjCvZ/toolbazaar-real-generators.jpg",
 };
 
 const NEW_SELLERS = [
