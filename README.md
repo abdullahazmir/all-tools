@@ -51,10 +51,10 @@ ToolBazaar is a working two-sided marketplace: local hardware & machine-tool sho
 ## 📸 Screenshots
 
 <div align="center">
-<img src="https://i.ibb.co/9HcjwB06/toolbazaar-explore.png" alt="Explore page — search, filters, sort, pagination" width="90%" />
+<img src="https://i.ibb.co/9kLtNCw1/toolbazaar-explore-v2.png" alt="Explore page — search, filters, sort, pagination" width="90%" />
 <p><em>Explore — search by product or shop name, filter by category/price/rating/condition</em></p>
 
-<img src="https://i.ibb.co/G4V7H1fF/toolbazaar-product.png" alt="Product details page with AI-powered Related Tools" width="90%" />
+<img src="https://i.ibb.co/GQwgRtMk/toolbazaar-product-v2.png" alt="Product details page with AI-powered Related Tools" width="90%" />
 <p><em>Product details — the "Related Tools" row is the live AI recommendation engine, not static data</em></p>
 </div>
 
