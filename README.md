@@ -54,8 +54,8 @@ ToolBazaar is a working two-sided marketplace: local hardware & machine-tool sho
 <img src="https://i.ibb.co/9kLtNCw1/toolbazaar-explore-v2.png" alt="Explore page — search, filters, sort, pagination" width="90%" />
 <p><em>Explore — search by product or shop name, filter by category/price/rating/condition</em></p>
 
-<img src="https://i.ibb.co/GQwgRtMk/toolbazaar-product-v2.png" alt="Product details page with AI-powered Related Tools" width="90%" />
-<p><em>Product details — the "Related Tools" row is the live AI recommendation engine, not static data</em></p>
+<img src="https://i.ibb.co/d4HB5Lm8/toolbazaar-product-v3.png" alt="Product details page with AI-powered Related Tools" width="90%" />
+<p><em>Product details — the "Related Tools" row is the live AI recommendation engine, not static data. Product photos are real: sourced per-exact-product where a genuine match exists (Klein Tools pliers here), category-accurate otherwise.</em></p>
 </div>
 
 ## 🧰 Tech Stack
@@ -88,6 +88,7 @@ A couple of things worth calling out for anyone reading the code:
 - **Cross-origin auth, solved properly.** The client and API are deployed on different domains. Rather than relying on `SameSite=None` cookies alone (which breaks server-side route protection), API calls are proxied same-origin through a Next.js rewrite, so session cookies belong to the client's own domain — including through the Google OAuth redirect.
 - **Idempotent payment webhooks.** Both the seller registration fee and product orders share one Stripe webhook, disambiguated by `metadata.type`. Stock decrements are conditioned on the order still being `pending`, so a redelivered webhook event can't double-charge inventory.
 - **AI with a fallback, not a dependency.** If Gemini's rerank call fails or times out, both AI surfaces fall back to sane default ordering (same-category/newest) instead of breaking the page.
+- **Product photos, sourced honestly.** Every product image is real (Wikimedia Commons, openly licensed) — matched to the exact product where a genuine real-world match exists (e.g. an actual Klein Tools linesman pliers photo for the Klein Tools listing), and to an accurate category photo otherwise (a real angle grinder for grinding tools, a real bolt for fasteners). No product shows an unrelated stock photo.
 
 ## 🛠️ Local setup
 
