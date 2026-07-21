@@ -1,10 +1,14 @@
 import Link from "next/link";
 
+import { FaFacebookF } from "react-icons/fa";
+import { FaLinkedinIn, FaXTwitter } from "react-icons/fa6";
+import { FaInstagram } from "react-icons/fa";
+
 const SOCIAL_LINKS = [
-  { label: "Facebook", href: "https://facebook.com", icon: "📘" },
-  { label: "X", href: "https://x.com", icon: "🐦" },
-  { label: "Instagram", href: "https://instagram.com", icon: "📷" },
-  { label: "LinkedIn", href: "https://linkedin.com", icon: "💼" },
+  { label: "Facebook", href: "https://facebook.com", icon: <FaFacebookF size={20} /> },
+  { label: "Twitter", href: "https://twitter.com", icon: <FaXTwitter size={20} /> },
+  { label: "Instagram", href: "https://instagram.com", icon: <FaInstagram size={20} /> },
+  { label: "LinkedIn", href: "https://linkedin.com", icon: <FaLinkedinIn size={20} /> },
 ];
 
 export function Footer() {
