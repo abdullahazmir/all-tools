@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { generateContent } from "../utils/gemini";
 import { productsCollection, Product } from "../models/product";
+import { categoriesCollection } from "../models/category";
 import { SHOP_LOOKUP_STAGES } from "./productController";
 import { logInteraction } from "./aiController";
 
@@ -43,55 +44,43 @@ function formatHistory(history: ChatMessage[]): string {
   return history.map((m) => `${m.role === "user" ? "Shopper" : "Assistant"}: ${m.text}`).join("\n");
 }
 
-interface SearchPlan {
-  needsProducts: boolean;
-  searchQuery: string | null;
+interface Heuristics {
   category: string | null;
   maxPrice: number | null;
-  minRating: number | null;
   condition: "new" | "used" | null;
 }
 
-function parsePlan(text: string): SearchPlan {
-  const parsed = JSON.parse(stripFences(text));
-  return {
-    needsProducts: parsed.needsProducts === true,
-    searchQuery: typeof parsed.searchQuery === "string" ? parsed.searchQuery : null,
-    category: typeof parsed.category === "string" ? parsed.category : null,
-    maxPrice: typeof parsed.maxPrice === "number" ? parsed.maxPrice : null,
-    minRating: typeof parsed.minRating === "number" ? parsed.minRating : null,
-    condition: parsed.condition === "new" || parsed.condition === "used" ? parsed.condition : null,
-  };
+const PRICE_CEILING_RE = /(?:under|below|less than|no more than|up to)\s*\$?(\d+(?:\.\d+)?)/i;
+const PRICE_BARE_RE = /\$(\d+(?:\.\d+)?)/;
+
+/** Cheap, non-AI intent extraction — replaces a first Gemini call with regex/substring matching. */
+async function extractHeuristics(message: string): Promise<Heuristics> {
+  const lower = message.toLowerCase();
+
+  const ceilingMatch = message.match(PRICE_CEILING_RE) ?? message.match(PRICE_BARE_RE);
+  const maxPrice = ceilingMatch ? Number(ceilingMatch[1]) : null;
+
+  const condition = /\bused\b/.test(lower) ? "used" : /\bnew\b/.test(lower) ? "new" : null;
+
+  const categories = await categoriesCollection().find().toArray();
+  const words = lower.split(/[^a-z]+/).filter((w) => w.length >= 4);
+  const category =
+    categories.find((c) => {
+      const name = c.name.toLowerCase();
+      return lower.includes(name) || words.some((w) => name.includes(w) || w.includes(name));
+    })?.slug ?? null;
+
+  return { category, maxPrice, condition };
 }
 
-function buildPlanPrompt(message: string, historyText: string): string {
-  return `You are the planning step of a shopping assistant for ToolBazaar, an online marketplace for hand and machine tools.
-
-Conversation so far:
-${historyText}
-
-Latest shopper message: "${message}"
-
-Decide whether you need to search the product catalog to answer well. If the shopper is asking about specific tools, a job/project, or a budget, you probably do. If they're asking something general (greeting, how the site works), you don't.
-
-Respond with ONLY a raw JSON object, no markdown, no commentary, in exactly this shape:
-{"needsProducts": true, "searchQuery": "cordless drill", "category": null, "maxPrice": 100, "minRating": null, "condition": null}
-
-Use null for any field you can't infer. searchQuery should be short keywords (product name/type), not a full sentence.`;
-}
-
-async function searchCandidates(plan: SearchPlan): Promise<ProductWithShop[]> {
+async function searchCandidates(heuristics: Heuristics): Promise<ProductWithShop[]> {
   const match: Record<string, unknown> = { status: "approved" };
-  if (plan.category) match.category = plan.category;
-  if (plan.condition) match.condition = plan.condition;
-  if (plan.maxPrice) match.price = { $lte: plan.maxPrice };
-  if (plan.minRating) match.ratingAvg = { $gte: plan.minRating };
-  if (plan.searchQuery) {
-    match.title = { $regex: plan.searchQuery, $options: "i" };
-  }
+  if (heuristics.category) match.category = heuristics.category;
+  if (heuristics.condition) match.condition = heuristics.condition;
+  if (heuristics.maxPrice) match.price = { $lte: heuristics.maxPrice };
 
   const results = await productsCollection()
-    .aggregate([{ $match: match }, ...SHOP_LOOKUP_STAGES, { $sort: { ratingAvg: -1 } }, { $limit: 8 }])
+    .aggregate([{ $match: match }, ...SHOP_LOOKUP_STAGES, { $sort: { ratingAvg: -1 } }, { $limit: 12 }])
     .toArray();
 
   return results as unknown as ProductWithShop[];
@@ -112,17 +101,17 @@ function buildAnswerPrompt(
           .join("\n")
       : "(no matching products found in catalog)";
 
-  return `You are a friendly, concise shopping assistant for ToolBazaar, an online marketplace for hand and machine tools. Only recommend products from the list below — never invent products or ids.
+  return `You are a friendly, concise shopping assistant for ToolBazaar, an online marketplace for hand and machine tools. Only recommend products from the list below — never invent products or ids. If the shopper's message is a greeting or general question rather than a product need, just respond conversationally and leave productIds empty.
 
 Conversation so far:
 ${historyText}
 
 Latest shopper message: "${message}"
 
-Available matching products (id. title — details):
+Candidate products from the catalog (id. title — details):
 ${list}
 
-Write a short, helpful reply (2-4 sentences) addressing the shopper's message, referencing specific products by name where relevant. If no products matched, say so and suggest they browse Explore or rephrase.
+Write a short, helpful reply (2-4 sentences) addressing the shopper's message, referencing specific products by name where relevant. If none of the candidates actually fit, say so and suggest they browse Explore or rephrase — don't force a recommendation.
 
 Respond with ONLY a raw JSON object, no markdown, no commentary, in exactly this shape:
 {"reply": "...", "productIds": ["<id>", "<id>"]}
@@ -154,13 +143,14 @@ export async function chatWithAssistant(req: Request, res: Response): Promise<vo
   const historyText = formatHistory(cleanHistory);
 
   try {
-    const planText = await generateContent(buildPlanPrompt(cleanMessage, historyText));
-    const plan = parsePlan(planText);
+    const heuristics = await extractHeuristics(cleanMessage);
+    const candidates = await searchCandidates(heuristics);
 
-    const candidates = plan.needsProducts ? await searchCandidates(plan) : [];
-
-    if (plan.needsProducts && plan.searchQuery && req.user) {
-      void logInteraction(req.user.id, "search", { query: plan.searchQuery, category: plan.category ?? undefined });
+    if (req.user) {
+      void logInteraction(req.user.id, "search", {
+        query: cleanMessage,
+        category: heuristics.category ?? undefined,
+      });
     }
 
     const answerText = await generateContent(buildAnswerPrompt(cleanMessage, historyText, candidates));
